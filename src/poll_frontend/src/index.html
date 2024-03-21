@@ -1,24 +1,47 @@
 <!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Question Poll</title>
+    <title>Multi-Question testing</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div class="container">
         <div class="title-container">
-            <h1>Multi-Question Poll</h1>
+            <h1>Multi-Question testing</h1>
         </div>
         <div id="questions"></div>
         <button id="submit-answers">Submit Answers</button>
         <h2 id="results-title">Results</h2>
         <div id="results"></div>
         <br>
-        <button id="reset">Reset Poll</button>
+        <button id="reset">Reset Results</button>
+        <h2>Add New Question</h2>
+        <form id="add-question-form">
+            <label for="question-type">Question Type:</label>
+            <select id="question-type" name="question-type">
+                <option value="text">Text</option>
+                <option value="radio">Radio</option>
+                <option value="checkbox">Checkbox</option>
+                <option value="paragraph">Paragraph</option>
+                <option value="dropdown">Dropdown</option>
+                <option value="linearScale">Linear Scale</option>
+            </select>
+            <br>
+            <label for="question-text">Question Text:</label>
+            <input type="text" id="question-text" name="question-text" required>
+            <br>
+            <label for="question-options">Question Options (comma-separated):</label>
+            <input type="text" id="question-options" name="question-options">
+            <br>
+            <button type="submit">Add Question</button>
+        </form>
     </div>
-    <script src="script.js"></script>
+    <script src="backendhandler.js"></script>
 </body>
-</html> 
+
+</html>

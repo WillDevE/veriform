@@ -1,43 +1,55 @@
 // main.mo
-import RBTree "mo:base/RBTree";
+import Buffer "mo:base/Buffer";
 import Text "mo:base/Text";
-import Array "mo:base/Array";
+import HashMap "mo:base/HashMap";
+import Nat "mo:base/Nat";
+import Option "mo:base/Option";
 
 actor {
-    // Data structure to store questions and answers
-    var questions : RBTree.RBTree<Text, RBTree.RBTree<Text, Nat>> = RBTree.RBTree<Text, RBTree.RBTree<Text, Nat>>(Text.compare);
+  // Data structure to store questions
+  var questions : Buffer.Buffer<(Text, Text, [Text])> = Buffer.Buffer<(Text, Text, [Text])>(0);
 
-    // Add multiple answers at once
-    public func addAnswers(answers : [(Text, Text)]) {
-        for ((question, answer) in answers.vals()) {
-            let answerTree = switch (questions.get(question)) {
-                case null RBTree.RBTree<Text, Nat>(Text.compare);
-                case (?existingTree) existingTree;
-            };
-            let currentCount = switch (answerTree.get(answer)) {
-                case null 0;
-                case (?count) count;
-            };
-            answerTree.put(answer, currentCount + 1);
-            questions.put(question, answerTree);
-        };
-    };
+  // Data structure to store answers
+  var answers : HashMap.HashMap<Text, HashMap.HashMap<Text, Nat>> = HashMap.HashMap<Text, HashMap.HashMap<Text, Nat>>(0, Text.equal, Text.hash);
 
-    // Get all questions and their answers
-    public query func getResults() : async [(Text, [(Text, Nat)])] {
-        var results : [(Text, [(Text, Nat)])] = [];
-        for ((question, answerTree) in questions.entries()) {
-            var answers : [(Text, Nat)] = [];
-            for ((answer, count) in answerTree.entries()) {
-                answers := Array.append<(Text, Nat)>(answers, [(answer, count)]);
-            };
-            results := Array.append<(Text, [(Text, Nat)])>(results, [(question, answers)]);
-        };
-        results
-    };
+  // Add a new question
+  public func addQuestion(questionType : Text, questionText : Text, options : [Text]) {
+    questions.add((questionType, questionText, options));
+  };
 
-    // Clear all data
-    public func clearData() {
-        questions := RBTree.RBTree<Text, RBTree.RBTree<Text, Nat>>(Text.compare);
+  // Get all questions
+  public query func getQuestions() : async [(Text, Text, [Text])] {
+    Buffer.toArray(questions);
+  };
+
+  // Add multiple answers at once
+  public func addAnswers(newAnswers : [(Text, Text)]) {
+    for ((question, answer) in newAnswers.vals()) {
+      let answerMap = switch (answers.get(question)) {
+        case null HashMap.HashMap<Text, Nat>(0, Text.equal, Text.hash);
+        case (?existingMap) existingMap;
+      };
+      answerMap.put(answer, Option.get(answerMap.get(answer), 0) + 1);
+      answers.put(question, answerMap);
     };
+  };
+
+  // Get all questions and their answers
+  public query func getResults() : async [(Text, [(Text, Nat)])] {
+    let results = Buffer.Buffer<(Text, [(Text, Nat)])>(answers.size());
+    for ((question, answerMap) in answers.entries()) {
+      let answerResults = Buffer.Buffer<(Text, Nat)>(answerMap.size());
+      for ((answer, count) in answerMap.entries()) {
+        answerResults.add((answer, count));
+      };
+      results.add((question, Buffer.toArray(answerResults)));
+    };
+    Buffer.toArray(results);
+  };
+
+  // Clear all data
+  public func clearData() {
+    questions.clear();
+    answers := HashMap.HashMap<Text, HashMap.HashMap<Text, Nat>>(0, Text.equal, Text.hash);
+  };
 };
