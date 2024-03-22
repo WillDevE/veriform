@@ -52,15 +52,18 @@ import { veriform_backend } from "../../declarations/veriform_backend";
 const questionTypeSelect = document.getElementById('question-type');
 const questionOptionsInput = document.getElementById('question-options');
 
-questionTypeSelect.addEventListener('change', () => {
+//jank fix to make the question options input display in the correct situation.
+questionTypeSelect.addEventListener('change', handleQuestionOptionsVisibility);
+
+function handleQuestionOptionsVisibility() {
   const selectedType = questionTypeSelect.value;
 
-  if (selectedType === 'text' || selectedType === 'paragraph') {
+  if (selectedType === 'text' || selectedType === 'paragraph' || selectedType === 'linearScale') {
     questionOptionsInput.style.display = 'none';
   } else {
     questionOptionsInput.style.display = 'block';
   }
-});
+}
 
 async function fetchAndRenderQuestions() {
   // Clear the existing questions
@@ -248,11 +251,12 @@ function displayResults(results) {
   });
 }
 
-// Load initial questions and results from the backend
+// Load initial questions and results from the backend (also call option hiding function)
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchAndRenderQuestions();
   const results = await veriform_backend.getResults();
   displayResults(results);
+  handleQuestionOptionsVisibility();
 });
 
 // Reset the poll data

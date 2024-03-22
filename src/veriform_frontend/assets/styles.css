@@ -317,13 +317,13 @@ body.dark-mode #add-question-form {
   border: none;
   border-bottom: 2px solid #ccc;
   border-radius: 0;
-  background-color: transparent;
   margin-bottom: 20px;
   transition: border-color 0.3s ease;
 }
 
 body.dark-mode #add-question-form input[type="text"],
 body.dark-mode #add-question-form select {
+  background-color: #2c2c2c;
   border-bottom-color: #666;
   color: #f5f5f5;
 }

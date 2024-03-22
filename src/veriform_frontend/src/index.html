@@ -15,7 +15,7 @@
             <h1>Multi-Question testing</h1>
         </div>
         <div id="questions"></div>
-        <button id="submit-answers">Submit Answers</button>
+        <button id="submit-answers">Submit</button>
         <h2 id="results-title">Results</h2>
         <div id="results"></div>
         <br>
@@ -35,13 +35,15 @@
             <label for="question-text">Question Text:</label>
             <input type="text" id="question-text" name="question-text" required>
             <br>
-            <label for="question-options">Question Options (comma-separated):</label>
-            <input type="text" id="question-options" name="question-options">
-            <br>
+            <div id="question-options">
+                <label for="question-options">Question Options (comma-separated):</label>
+                <input type="text" name="question-options">
+                <br>
+            </div>
             <button type="submit">Add Question</button>
         </form>
     </div>
-    <script src="backendhandler.js"></script>
+    <script type="text/js" src="backendhandler.js"></script>
 </body>
 
 </html>
