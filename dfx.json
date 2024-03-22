@@ -1,19 +1,19 @@
 {
   "canisters": {
-    "poll_backend": {
-      "main": "src/poll_backend/main.mo",
+    "veriform_backend": {
+      "main": "src/veriform_backend/main.mo",
       "type": "motoko"
     },
-    "poll_frontend": {
+    "veriform_frontend": {
       "dependencies": [
-        "poll_backend"
+        "veriform_backend"
       ],
       "frontend": {
-        "entrypoint": "src/poll_frontend/src/index.html"
+        "entrypoint": "src/veriform_frontend/src/index.html"
       },
       "source": [
-        "src/poll_frontend/assets",
-        "dist/poll_frontend/"
+        "src/veriform_frontend/assets",
+        "dist/veriform_frontend/"
       ],
       "type": "assets"
     }

@@ -46,7 +46,7 @@ darkModeToggle.addEventListener('click', () => {
 document.body.appendChild(darkModeToggle);
 
 // Import the backend actor
-import { poll_backend } from "../../declarations/poll_backend";
+import { veriform_backend } from "../../declarations/veriform_backend";
 
 // Fetch questions from the backend and render them
 const questionTypeSelect = document.getElementById('question-type');
@@ -66,7 +66,7 @@ async function fetchAndRenderQuestions() {
   // Clear the existing questions
   questionsDiv.innerHTML = '';
 
-  const questions = await poll_backend.getQuestions();
+  const questions = await veriform_backend.getQuestions();
 
   questions.forEach((question, index) => {
     const questionDiv = document.createElement('div');
@@ -174,7 +174,7 @@ submitButton.addEventListener('click', async () => {
     submitButton.disabled = true;
     submitButton.innerHTML = '<span class="loading-icon">&#8635;</span> Submitting...';
 
-    const questions = await poll_backend.getQuestions();
+    const questions = await veriform_backend.getQuestions();
     const answers = [];
 
     // Loop through questions and collect user answers
@@ -215,10 +215,10 @@ submitButton.addEventListener('click', async () => {
     }
 
     // Add all answers to the backend at once
-    await poll_backend.addAnswers(answers);
+    await veriform_backend.addAnswers(answers);
 
     // Get the updated results from the backend and display them
-    const results = await poll_backend.getResults();
+    const results = await veriform_backend.getResults();
     displayResults(results);
 
     submitButton.disabled = false;
@@ -251,13 +251,13 @@ function displayResults(results) {
 // Load initial questions and results from the backend
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchAndRenderQuestions();
-  const results = await poll_backend.getResults();
+  const results = await veriform_backend.getResults();
   displayResults(results);
 });
 
 // Reset the poll data
 resetButton.addEventListener('click', async () => {
-  await poll_backend.clearData();
+  await veriform_backend.clearData();
   displayResults([]);
 });
 
@@ -275,7 +275,7 @@ addQuestionForm.addEventListener('submit', async (event) => {
   submitButton.textContent = 'Adding...';
 
   try {
-    await poll_backend.addQuestion(questionType, questionText, options);
+    await veriform_backend.addQuestion(questionType, questionText, options);
     addQuestionForm.reset();
     await fetchAndRenderQuestions();
   } catch (error) {

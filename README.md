@@ -1,3 +1,8 @@
-# Developer Journey: 1.3: Developing your first dapp
+# Veriform by William Troy Oliva (TEAM FFFFFF)
 
-This repo hosts the finished code for the Internet Computer Developer Journey tutorial, 1.3: Developing your first dapp. 
+The goal of this project is to create a safe and secure forms system for surveys, questionnaires, or voting polls that integrates the various security features that the ICP provides.
+
+todo:
+    - Implement internet identity
+    - proper non-test front end
+    - figure more stuff out.
