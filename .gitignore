@@ -10,6 +10,9 @@
 # dfx temporary files
 .dfx/
 
+# idk if I should ignore these but just making sure.
+canister_ids.json
+
 # generated files
 src/declarations/
 

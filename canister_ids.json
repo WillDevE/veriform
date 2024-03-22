@@ -1,8 +1,8 @@
 {
-  "poll_backend": {
-    "ic": "gvk57-6aaaa-aaaal-qdu5q-cai"
+  "veriform_backend": {
+    "ic": "757ex-wyaaa-aaaam-acgaq-cai"
   },
-  "poll_frontend": {
-    "ic": "ganms-7iaaa-aaaal-qdu6a-cai"
+  "veriform_frontend": {
+    "ic": "7u4pl-aqaaa-aaaam-acgba-cai"
   }
 }
