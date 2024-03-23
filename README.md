@@ -6,7 +6,7 @@ todo:
 - Implement internet identity
 - proper non-test front end
 - fix question adding visual (seperate)
-- individual surveys
+- individual surveys (currently implemented, but keys are unhashed/no ownership)
 - code based access/identity based access (request or invite)
 - better results visuals (also result visibility options)
 - figure more stuff out.
