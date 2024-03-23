@@ -5,71 +5,57 @@ const submitButton = document.getElementById('submit-answers');
 const resetButton = document.getElementById('reset');
 const addQuestionForm = document.getElementById('add-question-form');
 
-// Toggle for dark mode
-const body = document.body;
-const darkModeToggle = document.createElement('button');
-darkModeToggle.classList.add('dark-mode-toggle');
-
-// Set initial mode
-function setInitialMode() {
-  const preferredMode = localStorage.getItem('preferredMode');
-
-  if (preferredMode === 'dark') {
-    body.classList.add('dark-mode');
-    document.documentElement.style.backgroundColor = '#1c1c1c';
-    darkModeToggle.textContent = '🌙';
-  } else {
-    body.classList.add('light-mode');
-    darkModeToggle.textContent = '☀️';
-  }
-}
-
-setInitialMode();
-
-// Toggle dark mode
-darkModeToggle.addEventListener('click', () => {
-  body.classList.toggle('dark-mode');
-  body.classList.toggle('light-mode');
-
-  if (body.classList.contains('dark-mode')) {
-    document.documentElement.style.backgroundColor = '#1c1c1c';
-    localStorage.setItem('preferredMode', 'dark');
-    darkModeToggle.textContent = '🌙';
-  } else {
-    document.documentElement.style.backgroundColor = '#fff';
-    localStorage.setItem('preferredMode', 'light');
-    darkModeToggle.textContent = '☀️';
-  }
-});
-
-// Add the toggle button to the document
-document.body.appendChild(darkModeToggle);
+// TODO: should probably hash this or something (for private forms)
+let setKey;
 
 // Import the backend actor
 import { veriform_backend } from "../../declarations/veriform_backend";
 
 // Fetch questions from the backend and render them
 const questionTypeSelect = document.getElementById('question-type');
-const questionOptionsInput = document.getElementById('question-options');
+const questionOptionsHolder = document.getElementById('question-options-holder');
 
-//jank fix to make the question options input display in the correct situation.
-questionTypeSelect.addEventListener('change', handleQuestionOptionsVisibility);
-
-function handleQuestionOptionsVisibility() {
+//hide the options if the question type doesnt really need it (linear scale is temporary)
+questionTypeSelect.addEventListener('change', () => {
   const selectedType = questionTypeSelect.value;
 
   if (selectedType === 'text' || selectedType === 'paragraph' || selectedType === 'linearScale') {
-    questionOptionsInput.style.display = 'none';
+    questionOptionsHolder.style.display = 'none';
   } else {
-    questionOptionsInput.style.display = 'block';
+    questionOptionsHolder.style.display = 'block';
   }
-}
+});
 
 async function fetchAndRenderQuestions() {
   // Clear the existing questions
   questionsDiv.innerHTML = '';
 
-  const questions = await veriform_backend.getQuestions();
+  // Get the existing set keys from the backend
+  const existingSets = await veriform_backend.getExistingSets();
+
+  if (existingSets.length === 0) {
+    // If no set keys exist, prompt the user to enter a new one
+    setKey = prompt('Please enter a new set key:');
+    if (!setKey) {
+      // If the user cancels, return early
+      return;
+    }
+    // Add the new set key to the backend
+    await veriform_backend.addQuestionSet(setKey);
+  } else {
+    // If set keys exist, prompt the user to select one
+    setKey = prompt(`Please enter an existing set key (${existingSets.join(', ')}) or a new set key:`);
+    if (!setKey) {
+      // If the user cancels, return early
+      return;
+    }
+    if (!existingSets.includes(setKey)) {
+      // If the entered key is new, add it to the backend
+      await veriform_backend.addQuestionSet(setKey);
+    }
+  }
+
+  const questions = await veriform_backend.getQuestions(setKey);
 
   questions.forEach((question, index) => {
     const questionDiv = document.createElement('div');
@@ -171,13 +157,15 @@ async function fetchAndRenderQuestions() {
 // Handle submit button click
 let isSubmitting = false;
 
+//submit handler
 submitButton.addEventListener('click', async () => {
   if (!submitButton.disabled && !isSubmitting) {
     isSubmitting = true;
     submitButton.disabled = true;
     submitButton.innerHTML = '<span class="loading-icon">&#8635;</span> Submitting...';
 
-    const questions = await veriform_backend.getQuestions();
+    const selectedSetKey = setKey;
+    const questions = await veriform_backend.getQuestions(selectedSetKey);
     const answers = [];
 
     // Loop through questions and collect user answers
@@ -218,10 +206,10 @@ submitButton.addEventListener('click', async () => {
     }
 
     // Add all answers to the backend at once
-    await veriform_backend.addAnswers(answers);
+    await veriform_backend.addAnswers(setKey, answers);
 
     // Get the updated results from the backend and display them
-    const results = await veriform_backend.getResults();
+    const results = await veriform_backend.getResults(setKey);
     displayResults(results);
 
     submitButton.disabled = false;
@@ -251,18 +239,31 @@ function displayResults(results) {
   });
 }
 
-// Load initial questions and results from the backend (also call option hiding function)
+// Load initial questions and results from the backend
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchAndRenderQuestions();
-  const results = await veriform_backend.getResults();
-  displayResults(results);
-  handleQuestionOptionsVisibility();
+  const selectedSetKey = setKey;
+  const results = await veriform_backend.getResults(selectedSetKey);
+  displayResults(results, setKey);
 });
 
 // Reset the poll data
 resetButton.addEventListener('click', async () => {
-  await veriform_backend.clearData();
-  displayResults([]);
+  resetButton.disabled = true;
+  resetButton.innerHTML = '<span class="loading-icon">&#8635;</span> Resetting...';
+
+  try {
+    await veriform_backend.clearData(setKey);
+    displayResults([], setKey);
+    await fetchAndRenderQuestions();
+    resetButton.disabled = false;
+    resetButton.innerHTML = 'Reset';
+  } catch (error) {
+    console.error('Error resetting data:', error);
+    resetButton.disabled = false;
+    resetButton.innerHTML = 'Reset';
+    alert('An error occurred while resetting the data. Please try again.');
+  }
 });
 
 // Handle adding a new question
@@ -273,13 +274,15 @@ addQuestionForm.addEventListener('submit', async (event) => {
   const questionText = document.getElementById('question-text').value;
   const questionOptions = document.getElementById('question-options').value;
   const options = questionOptions ? questionOptions.split(',').map(option => option.trim()) : [];
-
+  console.log(questionOptions);
   const submitButton = addQuestionForm.querySelector('button[type="submit"]');
   submitButton.disabled = true;
   submitButton.textContent = 'Adding...';
 
   try {
-    await veriform_backend.addQuestion(questionType, questionText, options);
+    const selectedSetKey = setKey;
+    console.log(options);
+    await veriform_backend.addQuestion(selectedSetKey, questionType, questionText, options);
     addQuestionForm.reset();
     await fetchAndRenderQuestions();
   } catch (error) {
@@ -289,3 +292,43 @@ addQuestionForm.addEventListener('submit', async (event) => {
     submitButton.textContent = 'Add Question';
   }
 });
+
+// Toggle for dark mode
+const body = document.body;
+const darkModeToggle = document.createElement('button');
+darkModeToggle.classList.add('dark-mode-toggle');
+
+// Set initial mode
+function setInitialMode() {
+  const preferredMode = localStorage.getItem('preferredMode');
+
+  if (preferredMode === 'dark') {
+    body.classList.add('dark-mode');
+    document.documentElement.style.backgroundColor = '#1c1c1c';
+    darkModeToggle.textContent = '🌙';
+  } else {
+    body.classList.add('light-mode');
+    darkModeToggle.textContent = '☀️';
+  }
+}
+
+setInitialMode();
+
+// Toggle dark mode
+darkModeToggle.addEventListener('click', () => {
+  body.classList.toggle('dark-mode');
+  body.classList.toggle('light-mode');
+
+  if (body.classList.contains('dark-mode')) {
+    document.documentElement.style.backgroundColor = '#1c1c1c';
+    localStorage.setItem('preferredMode', 'dark');
+    darkModeToggle.textContent = '🌙';
+  } else {
+    document.documentElement.style.backgroundColor = '#fff';
+    localStorage.setItem('preferredMode', 'light');
+    darkModeToggle.textContent = '☀️';
+  }
+});
+
+// Add the toggle button to the document
+document.body.appendChild(darkModeToggle);

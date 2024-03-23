@@ -5,14 +5,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Question testing</title>
+    <title>Veriform</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
     <div class="container">
         <div class="title-container">
-            <h1>Multi-Question testing</h1>
+            <h1>Multi-Question test frontend</h1>
         </div>
         <div id="questions"></div>
         <button id="submit-answers">Submit</button>
@@ -35,15 +35,15 @@
             <label for="question-text">Question Text:</label>
             <input type="text" id="question-text" name="question-text" required>
             <br>
-            <div id="question-options">
+            <div id="question-options-holder">
                 <label for="question-options">Question Options (comma-separated):</label>
-                <input type="text" name="question-options">
+                <input type="text" id="question-options" name="question-options">
                 <br>
             </div>
             <button type="submit">Add Question</button>
         </form>
     </div>
-    <script type="text/js" src="backendhandler.js"></script>
+    <script type="text/js" src="index.js"></script>
 </body>
 
 </html>
