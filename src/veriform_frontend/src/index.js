@@ -68,23 +68,23 @@ async function fetchAndRenderQuestions() {
       `;
     } else if (question[0] === 'radio') {
       questionDiv.innerHTML = `
-        <h3>${index + 1}. ${question[1]}</h3>
-        ${question[2]
-          .map(
-            (option, optionIndex) => `
-            <label>
-              <input type="radio" name="question-${index}" value="${option}" ${
-              optionIndex === question[2].length - 1 ? 'data-other="true"' : ''
-            }>
-              ${option}
-            </label>
-          `
-          )
-          .join('')}
-        <div class="other-option-input" style="display: none;">
-          <input type="text" id="other-answer-${index}" placeholder="Enter your answer">
-        </div>
-      `;
+      <h3>${index + 1}. ${question[1]}</h3>
+      ${question[2]
+        .map(
+          (option, optionIndex) => `
+          <label>
+            <input type="radio" name="question-${index}" value="${option}" ${
+            optionIndex === question[2].length - 1 && option.toLowerCase() === 'other' ? 'data-other="true"' : ''
+          }>
+            ${option}
+          </label>
+        `
+        )
+        .join('')}
+      <div class="other-option-input" style="display: none;">
+        <input type="text" id="other-answer-${index}" placeholder="Enter your answer">
+      </div>
+    `;
     } else if (question[0] === 'checkbox') {
       questionDiv.innerHTML = `
         <h3>${index + 1}. ${question[1]}</h3>
@@ -133,22 +133,19 @@ async function fetchAndRenderQuestions() {
 
   radioInputs.forEach((radioInput) => {
     radioInput.addEventListener('change', () => {
-      const questionType = questions.find((q, i) => i === Number(radioInput.name.split('-')[1]))[0];
-      if (questionType !== 'linearScale') {
-        const otherOptionInput = radioInput.parentNode.parentNode.querySelector('.other-option-input input[type="text"]');
-        const otherOptionContainer = radioInput.parentNode.parentNode.querySelector('.other-option-input');
-
-        if (radioInput.dataset.other === 'true') {
-          if (radioInput.checked) {
-            otherOptionContainer.style.display = 'block';
-          } else {
-            otherOptionContainer.style.display = 'none';
-            otherOptionInput.value = ''; // Clear the input value when a different option is selected
-          }
+      const otherOptionInput = radioInput.parentNode.parentNode.querySelector('.other-option-input input[type="text"]');
+      const otherOptionContainer = radioInput.parentNode.parentNode.querySelector('.other-option-input');
+  
+      if (radioInput.dataset.other === 'true') {
+        if (radioInput.checked) {
+          otherOptionContainer.style.display = 'block';
         } else {
           otherOptionContainer.style.display = 'none';
           otherOptionInput.value = ''; // Clear the input value when a different option is selected
         }
+      } else {
+        otherOptionContainer.style.display = 'none';
+        otherOptionInput.value = ''; // Clear the input value when a different option is selected
       }
     });
   });
@@ -178,12 +175,14 @@ submitButton.addEventListener('click', async () => {
         answer = textInput.value.trim();
       } else if (questionType === 'radio') {
         const selectedRadio = document.querySelector(`input[name="question-${i}"]:checked`);
-        answer = selectedRadio ? selectedRadio.value : '';
-
-        // If the 'Other' option is selected, get the value from the text input
-        if (answer === questionOptions[questionOptions.length - 1]) {
-          const otherInput = document.querySelector(`#other-answer-${i}`);
-          answer = otherInput.value.trim();
+        const otherInput = document.querySelector(`#other-answer-${i}`);
+      
+        if (selectedRadio) {
+          if (selectedRadio.dataset.other === 'true') {
+            answer = otherInput.value.trim() || selectedRadio.value;
+          } else {
+            answer = selectedRadio.value;
+          }
         }
       } else if (questionType === 'checkbox') {
         const selectedCheckboxes = Array.from(document.querySelectorAll(`input[name="question-${i}"]:checked`));
