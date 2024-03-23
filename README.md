@@ -9,4 +9,8 @@ todo:
 - individual surveys (currently implemented, but keys are unhashed/no ownership)
 - code based access/identity based access (request or invite)
 - better results visuals (also result visibility options)
+- consolidated grid answering type (like google forms)
+- quiz mode (correct answer, key sensitivity options)
+- required questions.
+- better looking readme
 - figure more stuff out.
