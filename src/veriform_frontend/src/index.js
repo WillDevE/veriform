@@ -1,21 +1,19 @@
-// index.js
+// Import the backend actor
+import { veriform_backend } from "../../declarations/veriform_backend";
+
+// Get DOM elements
 const questionsDiv = document.getElementById('questions');
 const resultsDiv = document.getElementById('results');
 const submitButton = document.getElementById('submit-answers');
 const resetButton = document.getElementById('reset');
 const addQuestionForm = document.getElementById('add-question-form');
-
-// TODO: should probably hash this or something (for private forms)
-let setKey;
-
-// Import the backend actor
-import { veriform_backend } from "../../declarations/veriform_backend";
-
-// Fetch questions from the backend and render them
 const questionTypeSelect = document.getElementById('question-type');
 const questionOptionsHolder = document.getElementById('question-options-holder');
 
-//hide the options if the question type doesnt really need it (linear scale is temporary)
+let setKey;
+let isSubmitting = false;
+
+// Hide the options if the question type doesn't require it
 questionTypeSelect.addEventListener('change', () => {
   const selectedType = questionTypeSelect.value;
 
@@ -26,136 +24,136 @@ questionTypeSelect.addEventListener('change', () => {
   }
 });
 
-async function fetchAndRenderQuestions() {
-  // Clear the existing questions
+// Fetch and render questions
+const fetchAndRenderQuestions = async () => {
   questionsDiv.innerHTML = '';
 
-  // Get the existing set keys from the backend
-  const existingSets = await veriform_backend.getExistingSets();
+  // Check if key is present in the URL
+  const url = new URL(window.location.href);
+  const params = new URLSearchParams(url.search);
+  const keyFromURL = params.get('key');
 
-  if (existingSets.length === 0) {
-    // If no set keys exist, prompt the user to enter a new one
-    setKey = prompt('Please enter a new set key:');
-    if (!setKey) {
-      // If the user cancels, return early
-      return;
-    }
-    // Add the new set key to the backend
-    await veriform_backend.addQuestionSet(setKey);
+  // Get existing sets or create a new one
+  const existingSets = await veriform_backend.getExistingSets();
+  if (keyFromURL && existingSets.includes(keyFromURL)) {
+    setKey = keyFromURL;
   } else {
-    // If set keys exist, prompt the user to select one
-    setKey = prompt(`Please enter an existing set key (${existingSets.join(', ')}) or a new set key:`);
-    if (!setKey) {
-      // If the user cancels, return early
-      return;
-    }
-    if (!existingSets.includes(setKey)) {
-      // If the entered key is new, add it to the backend
+    if (existingSets.length === 0) {
+      setKey = prompt('Please enter a new set key:');
+      if (!setKey) {
+        return;
+      }
       await veriform_backend.addQuestionSet(setKey);
+    } else {
+      setKey = prompt(`Please enter an existing set key (${existingSets.join(', ')}) or a new set key:`);
+      if (!setKey) {
+        return;
+      }
+      if (!existingSets.includes(setKey)) {
+        await veriform_backend.addQuestionSet(setKey);
+      }
     }
   }
 
   const questions = await veriform_backend.getQuestions(setKey);
 
+  // Render each question
   questions.forEach((question, index) => {
-    const questionDiv = document.createElement('div');
-    questionDiv.classList.add('question-container');
-
-    if (question[0] === 'text') {
-      questionDiv.innerHTML = `
-        <h3>${index + 1}. ${question[1]}</h3>
-        <input type="text" id="answer-${index}" placeholder="Enter your answer">
-      `;
-    } else if (question[0] === 'radio') {
-      questionDiv.innerHTML = `
-      <h3>${index + 1}. ${question[1]}</h3>
-      ${question[2]
-        .map(
-          (option, optionIndex) => `
-          <label>
-            <input type="radio" name="question-${index}" value="${option}" ${
-            optionIndex === question[2].length - 1 && option.toLowerCase() === 'other' ? 'data-other="true"' : ''
-          }>
-            ${option}
-          </label>
-        `
-        )
-        .join('')}
-      <div class="other-option-input" style="display: none;">
-        <input type="text" id="other-answer-${index}" placeholder="Enter your answer">
-      </div>
-    `;
-    } else if (question[0] === 'checkbox') {
-      questionDiv.innerHTML = `
-        <h3>${index + 1}. ${question[1]}</h3>
-        ${question[2]
-          .map(
-            (option) => `
-            <label>
-              <input type="checkbox" name="question-${index}" value="${option}">
-              ${option}
-            </label>
-          `
-          )
-          .join('')}
-      `;
-    } else if (question[0] === 'paragraph') {
-      questionDiv.innerHTML = `
-        <h3>${index + 1}. ${question[1]}</h3>
-        <textarea id="answer-${index}" placeholder="Enter your answer"></textarea>
-      `;
-    } else if (question[0] === 'dropdown') {
-      questionDiv.innerHTML = `
-        <h3>${index + 1}. ${question[1]}</h3>
-        <select id="answer-${index}">
-          ${question[2]
-            .map((option) => `<option value="${option}">${option}</option>`)
-            .join('')}
-        </select>
-      `;
-    } else if (question[0] === 'linearScale') {
-      questionDiv.innerHTML = `
-        <h3>${index + 1}. ${question[1]}</h3>
-        <div class="linear-scale">
-          <span>Poor</span>
-          ${Array.from({ length: 5 }, (_, i) => `<input type="radio" name="question-${index}" value="${i + 1}">`)
-            .join('')}
-          <span>Excellent</span>
-        </div>
-      `;
-    }
-
-    questionsDiv.appendChild(questionDiv);
+    renderQuestion(question, index);
   });
 
   // Add event listeners for radio buttons
   const radioInputs = document.querySelectorAll('input[type="radio"]');
-
   radioInputs.forEach((radioInput) => {
-    radioInput.addEventListener('change', () => {
-      const otherOptionInput = radioInput.parentNode.parentNode.querySelector('.other-option-input input[type="text"]');
-      const otherOptionContainer = radioInput.parentNode.parentNode.querySelector('.other-option-input');
-  
-      if (radioInput.dataset.other === 'true') {
-        if (radioInput.checked) {
-          otherOptionContainer.style.display = 'block';
-        } else {
-          otherOptionContainer.style.display = 'none';
-          otherOptionInput.value = ''; // Clear the input value when a different option is selected
-        }
-      } else {
-        otherOptionContainer.style.display = 'none';
-        otherOptionInput.value = ''; // Clear the input value when a different option is selected
-      }
-    });
+    radioInput.addEventListener('change', toggleOtherInput);
   });
-}
+};
+
+// Render a single question (format is stored here)
+const renderQuestion = (question, index) => {
+  const [questionType, questionText, questionOptions] = question;
+  const questionDiv = document.createElement('div');
+  questionDiv.classList.add('question-container');
+
+  // Show the set key at the top
+  if (index === 0) {
+    const setKeyDiv = document.createElement('div');
+    setKeyDiv.textContent = `Current Set Key (TEMPORARY REMOVE PLS): ${setKey}`;
+    questionsDiv.appendChild(setKeyDiv);
+  }
+
+  if (questionType === 'text') {
+    questionDiv.innerHTML = `
+      <h3>${index + 1}. ${questionText}</h3>
+      <input type="text" id="answer-${index}" placeholder="Enter your answer">
+    `;
+  } else if (questionType === 'radio') {
+    questionDiv.innerHTML = `
+      <h3>${index + 1}. ${questionText}</h3>
+      ${questionOptions.map((option, optionIndex) => `
+        <label>
+          <input type="radio" name="question-${index}" value="${option}" ${
+            optionIndex === questionOptions.length - 1 && option.toLowerCase() === 'other' ? 'data-other="true"' : ''
+          }>
+          ${option}
+        </label>
+      `).join('')}
+      <div class="other-option-input" style="display: none;">
+        <input type="text" id="other-answer-${index}" placeholder="Enter your answer">
+      </div>
+    `;
+  } else if (questionType === 'checkbox') {
+    questionDiv.innerHTML = `
+      <h3>${index + 1}. ${questionText}</h3>
+      ${questionOptions.map(option => `
+        <label>
+          <input type="checkbox" name="question-${index}" value="${option}">
+          ${option}
+        </label>
+      `).join('')}
+    `;
+  } else if (questionType === 'paragraph') {
+    questionDiv.innerHTML = `
+      <h3>${index + 1}. ${questionText}</h3>
+      <textarea id="answer-${index}" placeholder="Enter your answer"></textarea>
+    `;
+  } else if (questionType === 'dropdown') {
+    questionDiv.innerHTML = `
+      <h3>${index + 1}. ${questionText}</h3>
+      <select id="answer-${index}">
+        ${questionOptions.map(option => `<option value="${option}">${option}</option>`).join('')}
+      </select>
+    `;
+  } else if (questionType === 'linearScale') {
+    questionDiv.innerHTML = `
+      <h3>${index + 1}. ${questionText}</h3>
+      <div class="linear-scale">
+        <span>Poor</span>
+        ${Array.from({ length: 5 }, (_, i) => `<input type="radio" name="question-${index}" value="${i + 1}">`).join('')}
+        <span>Excellent</span>
+      </div>
+    `;
+  }
+
+  questionsDiv.appendChild(questionDiv);
+};
+
+// Toggle the display of the "Other" input for radio buttons
+const toggleOtherInput = (event) => {
+  const otherOptionInput = event.target.parentNode.parentNode.querySelector('.other-option-input input[type="text"]');
+  const otherOptionContainer = event.target.parentNode.parentNode.querySelector('.other-option-input');
+
+  if (event.target.dataset.other === 'true') {
+    otherOptionContainer.style.display = event.target.checked ? 'block' : 'none';
+    if (!event.target.checked) otherOptionInput.value = '';
+  } else {
+    otherOptionContainer.style.display = 'none';
+    otherOptionInput.value = '';
+  }
+};
 
 // Handle submit button click
-let isSubmitting = false;
-
-//submit handler
-submitButton.addEventListener('click', async () => {
+const submitAnswers = async () => {
   if (!submitButton.disabled && !isSubmitting) {
     isSubmitting = true;
     submitButton.disabled = true;
@@ -171,37 +169,28 @@ submitButton.addEventListener('click', async () => {
       let answer = '';
 
       if (questionType === 'text') {
-        const textInput = document.querySelector(`#answer-${i}`);
-        answer = textInput.value.trim();
+        answer = document.querySelector(`#answer-${i}`).value.trim();
       } else if (questionType === 'radio') {
         const selectedRadio = document.querySelector(`input[name="question-${i}"]:checked`);
         const otherInput = document.querySelector(`#other-answer-${i}`);
-      
+
         if (selectedRadio) {
-          if (selectedRadio.dataset.other === 'true') {
-            answer = otherInput.value.trim() || selectedRadio.value;
-          } else {
-            answer = selectedRadio.value;
-          }
+          answer = selectedRadio.dataset.other === 'true' ? (otherInput.value.trim() || selectedRadio.value) : selectedRadio.value;
         }
       } else if (questionType === 'checkbox') {
         const selectedCheckboxes = Array.from(document.querySelectorAll(`input[name="question-${i}"]:checked`));
         answer = selectedCheckboxes.map(checkbox => checkbox.value).join(', ');
       } else if (questionType === 'paragraph') {
-        const textArea = document.querySelector(`#answer-${i}`);
-        answer = textArea.value.trim();
+        answer = document.querySelector(`#answer-${i}`).value.trim();
       } else if (questionType === 'dropdown') {
-        const dropdown = document.querySelector(`#answer-${i}`);
-        answer = dropdown.value;
+        answer = document.querySelector(`#answer-${i}`).value;
       } else if (questionType === 'linearScale') {
         const selectedRadio = document.querySelector(`input[name="question-${i}"]:checked`);
         answer = selectedRadio ? selectedRadio.value : '';
       }
 
       // Add the question and answer to the answers array if an answer is provided
-      if (answer) {
-        answers.push([questionText, answer]);
-      }
+      if (answer) answers.push([questionText, answer]);
     }
 
     // Add all answers to the backend at once
@@ -215,10 +204,10 @@ submitButton.addEventListener('click', async () => {
     submitButton.innerHTML = 'Submit Answers';
     isSubmitting = false;
   }
-});
+};
 
 // Display the poll results
-function displayResults(results) {
+const displayResults = (results) => {
   resultsDiv.innerHTML = '';
 
   results.forEach(([question, answers]) => {
@@ -236,51 +225,40 @@ function displayResults(results) {
     questionDiv.appendChild(answersDiv);
     resultsDiv.appendChild(questionDiv);
   });
-}
-
-// Load initial questions and results from the backend
-document.addEventListener('DOMContentLoaded', async () => {
-  await fetchAndRenderQuestions();
-  const selectedSetKey = setKey;
-  const results = await veriform_backend.getResults(selectedSetKey);
-  displayResults(results, setKey);
-});
+};
 
 // Reset the poll data
-resetButton.addEventListener('click', async () => {
+const resetData = async () => {
   resetButton.disabled = true;
   resetButton.innerHTML = '<span class="loading-icon">&#8635;</span> Resetting...';
 
   try {
     await veriform_backend.clearData(setKey);
-    displayResults([], setKey);
+    displayResults([]);
     await fetchAndRenderQuestions();
-    resetButton.disabled = false;
-    resetButton.innerHTML = 'Reset';
   } catch (error) {
     console.error('Error resetting data:', error);
+    alert('An error occurred while resetting the data. Please try again.');
+  } finally {
     resetButton.disabled = false;
     resetButton.innerHTML = 'Reset';
-    alert('An error occurred while resetting the data. Please try again.');
   }
-});
+};
 
 // Handle adding a new question
-addQuestionForm.addEventListener('submit', async (event) => {
+const addNewQuestion = async (event) => {
   event.preventDefault();
 
   const questionType = document.getElementById('question-type').value;
   const questionText = document.getElementById('question-text').value;
   const questionOptions = document.getElementById('question-options').value;
   const options = questionOptions ? questionOptions.split(',').map(option => option.trim()) : [];
-  console.log(questionOptions);
   const submitButton = addQuestionForm.querySelector('button[type="submit"]');
   submitButton.disabled = true;
   submitButton.textContent = 'Adding...';
 
   try {
     const selectedSetKey = setKey;
-    console.log(options);
     await veriform_backend.addQuestion(selectedSetKey, questionType, questionText, options);
     addQuestionForm.reset();
     await fetchAndRenderQuestions();
@@ -290,7 +268,7 @@ addQuestionForm.addEventListener('submit', async (event) => {
     submitButton.disabled = false;
     submitButton.textContent = 'Add Question';
   }
-});
+};
 
 // Toggle for dark mode
 const body = document.body;
@@ -298,7 +276,7 @@ const darkModeToggle = document.createElement('button');
 darkModeToggle.classList.add('dark-mode-toggle');
 
 // Set initial mode
-function setInitialMode() {
+const setInitialMode = () => {
   const preferredMode = localStorage.getItem('preferredMode');
 
   if (preferredMode === 'dark') {
@@ -309,7 +287,7 @@ function setInitialMode() {
     body.classList.add('light-mode');
     darkModeToggle.textContent = '☀️';
   }
-}
+};
 
 setInitialMode();
 
@@ -331,3 +309,13 @@ darkModeToggle.addEventListener('click', () => {
 
 // Add the toggle button to the document
 document.body.appendChild(darkModeToggle);
+
+// Event listeners
+submitButton.addEventListener('click', submitAnswers);
+resetButton.addEventListener('click', resetData);
+addQuestionForm.addEventListener('submit', addNewQuestion);
+document.addEventListener('DOMContentLoaded', async () => {
+  await fetchAndRenderQuestions();
+  const selectedSetKey = setKey;
+  await displayResults(await veriform_backend.getResults(selectedSetKey));
+});
