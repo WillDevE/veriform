@@ -39,13 +39,13 @@ const fetchAndRenderQuestions = async () => {
     setKey = keyFromURL;
   } else {
     if (existingSets.length === 0) {
-      setKey = prompt('Please enter a new set key:');
+      setKey = prompt('Please enter a new set key to create a form:');
       if (!setKey) {
         return;
       }
       await veriform_backend.addQuestionSet(setKey);
     } else {
-      setKey = prompt(`Please enter an existing set key (${existingSets.join(', ')}) or a new set key:`);
+      setKey = prompt(`Please enter an existing set key or a new set key to create a new form:`);
       if (!setKey) {
         return;
       }
