@@ -35,6 +35,7 @@ async function displayFormKeys() {
     container.appendChild(formKeysDiv);
   } catch (error) {
     console.error('Error fetching form keys:', error);
+    // Handle the error appropriately, e.g., show an error message to the user
   }
 }
 
@@ -48,9 +49,34 @@ function createFormContainer(container) {
   const input = document.createElement('input');
   input.type = 'text';
   input.id = 'setKey';
-  input.placeholder = 'Enter form name';
+  input.placeholder = 'Enter form key';
   input.classList.add('form-input');
   inputDiv.appendChild(input);
+
+  // Add input for setName
+  const setNameInput = document.createElement('input');
+  setNameInput.type = 'text';
+  setNameInput.id = 'setName';
+  setNameInput.placeholder = 'Enter form name';
+  setNameInput.classList.add('form-input');
+  inputDiv.appendChild(setNameInput);
+
+  // Create a checkbox to toggle the password input
+  const passwordToggle = document.createElement('input');
+  passwordToggle.type = 'checkbox';
+  passwordToggle.id = 'passwordToggle';
+  passwordToggle.addEventListener('change', () => {
+    passwordInput.style.display = passwordToggle.checked ? 'block' : 'none';
+  });
+  inputDiv.appendChild(passwordToggle);
+  const passwordInput = document.createElement('input');
+  passwordInput.type = 'password';
+  passwordInput.id = 'password';
+  passwordInput.placeholder = 'Enter password';
+  passwordInput.classList.add('form-input');
+  passwordInput.style.display = 'none'; // Hide the password input by default
+  inputDiv.appendChild(passwordInput);
+
   const button = document.createElement('button');
   button.type = 'submit';
   button.id = 'create-form';
@@ -64,29 +90,54 @@ function createFormContainer(container) {
 
 // Function to handle form submission
 let isAddingForm = false;
+
 const handleFormSubmission = async (event) => {
   event.preventDefault();
 
-  if (!isAddingForm) {
-    isAddingForm = true;
-    const setKey = document.getElementById('setKey').value.trim();
-    const submitButton = event.target.querySelector('button[type="submit"]');
-    submitButton.disabled = true;
-    submitButton.innerHTML = '<span class="loading-icon">&#8635;</span> Creating...';
+  // Check if another form is already being added
+  if (isAddingForm) {
+    console.warn('Another form is already being added. Please wait for the previous operation to complete.');
+    return;
+  }
 
-    if (setKey) {
-      try {
-        const key = await veriform_backend.addQuestionSet(setKey);
-        console.log('New form key:', key);
-        displayFormKeys(); // Call this function to reload the list of forms
-      } catch (error) {
-        console.error('Error creating new form:', error);
-      } finally {
-        submitButton.disabled = false;
-        submitButton.innerHTML = 'Create New Form';
-        isAddingForm = false;
-        document.getElementById('setKey').value = '';
-      }
+  isAddingForm = true;
+
+  const setKey = document.getElementById('setKey').value.trim();
+  const setName = document.getElementById('setName').value.trim();
+  const passwordToggle = document.getElementById('passwordToggle');
+  let password = '';
+  if (passwordToggle.checked) { // If the password toggle is checked
+    password = document.getElementById('password').value.trim(); // Get the password
+  }
+  const submitButton = event.target.querySelector('button[type="submit"]');
+  // Check if setKey is provided
+  if (!setKey) {
+    console.error('Please provide a form key.');
+    isAddingForm = false;
+    return;
+  }
+
+  submitButton.disabled = true;
+  submitButton.innerHTML = '<span class="loading-icon">&#8635;</span> Creating...';
+
+  try {
+    await veriform_backend.addQuestionSet(setKey, password, setName);
+    // store key and password in session storage
+    sessionStorage.setItem('key', setKey);
+    sessionStorage.setItem('password', password);
+    // Navigate to the created form
+    window.location.href = `index.html?key=${setKey}`;
+  } catch (error) {
+    console.error('Error creating new form:', error);
+    // Handle the error appropriately, e.g., show an error message to the user
+  } finally {
+    submitButton.disabled = false;
+    submitButton.innerHTML = 'Create New Form';
+    isAddingForm = false;
+    document.getElementById('setKey').value = '';
+    document.getElementById('setName').value = '';
+    if (passwordToggle.checked) {
+      document.getElementById('password').value = ''; // Clear the password input
     }
   }
 };

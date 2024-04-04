@@ -12,9 +12,14 @@ const questionOptionsHolder = document.getElementById('question-options-holder')
 
 let setKey;
 let isSubmitting = false;
+let formIsPrivate = false;
 
-// Hide the options if the question type doesn't require it
-questionTypeSelect.addEventListener('change', () => {
+// Retrieve the password from session storage
+const password = sessionStorage.getItem('password') || "";
+const sessionKey = sessionStorage.getItem('key');
+
+// Function to hide or show question options based on selected question type
+const handleQuestionTypeChange = () => {
   const selectedType = questionTypeSelect.value;
 
   if (selectedType === 'text' || selectedType === 'paragraph' || selectedType === 'linearScale') {
@@ -22,7 +27,10 @@ questionTypeSelect.addEventListener('change', () => {
   } else {
     questionOptionsHolder.style.display = 'block';
   }
-});
+};
+
+// Add event listener to question type select element
+questionTypeSelect.addEventListener('change', handleQuestionTypeChange);
 
 // Fetch and render questions
 const fetchAndRenderQuestions = async () => {
@@ -33,29 +41,34 @@ const fetchAndRenderQuestions = async () => {
   const params = new URLSearchParams(url.search);
   const keyFromURL = params.get('key');
 
-  // Get existing sets or create a new one
-  const existingSets = await veriform_backend.getExistingSets();
-  if (keyFromURL && existingSets.includes(keyFromURL)) {
-    setKey = keyFromURL;
-  } else {
-    if (existingSets.length === 0) {
-      setKey = prompt('Please enter a new set key to create a form:');
-      if (!setKey) {
-        return;
-      }
-      await veriform_backend.addQuestionSet(setKey);
+  // check if set exists
+  if (password.length > 0) {
+    const selectedPassword = password;
+    if (veriform_backend.checkSetExists(sessionKey, selectedPassword)) {
+      formIsPrivate = true;
+      if (sessionKey) {
+        setKey = sessionKey;
+      } 
     } else {
-      setKey = prompt(`Please enter an existing set key or a new set key to create a new form:`);
-      if (!setKey) {
-        return;
-      }
-      if (!existingSets.includes(setKey)) {
-        await veriform_backend.addQuestionSet(setKey);
-      }
+      prompt('Invalid key or password, please try again');
+      window.location.href = 'formsBrowser.html';
+    }
+  } else {
+    console.log("session key is:", sessionKey);
+    formIsPrivate = false;
+    const existingSets = await veriform_backend.getExistingSets();
+    const formKeys = existingSets.map(set => set[0]);
+    console.log("Form keys are:", formKeys);
+    if (sessionKey && formKeys.includes(sessionKey)) {
+      setKey = sessionKey;
+      console.log("found public set 2")
+    } else {
+      prompt('Invalid or no key found, please try again');
+      window.location.href = 'formsBrowser.html';
     }
   }
-
-  const questions = await veriform_backend.getQuestions(setKey);
+  const selectedPassword = password;
+  const questions = await veriform_backend.getQuestions(setKey, selectedPassword);
 
   // Render each question
   questions.forEach((question, index) => {
@@ -159,8 +172,8 @@ const submitAnswers = async () => {
     submitButton.disabled = true;
     submitButton.innerHTML = '<span class="loading-icon">&#8635;</span> Submitting...';
 
-    const selectedSetKey = setKey;
-    const questions = await veriform_backend.getQuestions(selectedSetKey);
+    const selectedPassword = password;
+    const questions = await veriform_backend.getQuestions(setKey, selectedPassword);
     const answers = [];
 
     // Loop through questions and collect user answers
@@ -194,10 +207,10 @@ const submitAnswers = async () => {
     }
 
     // Add all answers to the backend at once
-    await veriform_backend.addAnswers(setKey, answers);
+    await veriform_backend.addAnswers(setKey, selectedPassword, answers);
 
     // Get the updated results from the backend and display them
-    const results = await veriform_backend.getResults(setKey);
+    const results = await veriform_backend.getResults(setKey, password);
     displayResults(results);
 
     submitButton.disabled = false;
@@ -233,7 +246,8 @@ const resetData = async () => {
   resetButton.innerHTML = '<span class="loading-icon">&#8635;</span> Resetting...';
 
   try {
-    await veriform_backend.clearData(setKey);
+    const selectedPassword = password;
+    await veriform_backend.clearData(setKey, selectedPassword);
     displayResults([]);
     await fetchAndRenderQuestions();
   } catch (error) {
@@ -258,8 +272,9 @@ const addNewQuestion = async (event) => {
   submitButton.textContent = 'Adding...';
 
   try {
+    const selectedPassword = password;
     const selectedSetKey = setKey;
-    await veriform_backend.addQuestion(selectedSetKey, questionType, questionText, options);
+    await veriform_backend.addQuestion(selectedSetKey, selectedPassword, questionType, questionText, options);
     addQuestionForm.reset();
     await fetchAndRenderQuestions();
   } catch (error) {
@@ -317,5 +332,7 @@ addQuestionForm.addEventListener('submit', addNewQuestion);
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchAndRenderQuestions();
   const selectedSetKey = setKey;
-  await displayResults(await veriform_backend.getResults(selectedSetKey));
+  const selectedPassword = password;
+  await displayResults(await veriform_backend.getResults(selectedSetKey, selectedPassword));
+  await handleQuestionTypeChange();
 });

@@ -1,9 +1,10 @@
-require("dotenv").config();
 const path = require("path");
 const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
+
+require("dotenv").config();
 const isDevelopment = process.env.NODE_ENV !== "production";
 const frontendDirectory = "veriform_frontend";
 const frontend_entry = path.join("src", frontendDirectory, "src", "index.html");
@@ -24,7 +25,7 @@ module.exports = {
     extensions: [".js", ".ts", ".jsx", ".tsx"],
     fallback: {
       assert: require.resolve("assert/"),
-      buffer: require.resolve("buffer/"),
+        buffer: require.resolve("buffer/"),
       events: require.resolve("events/"),
       stream: require.resolve("stream-browserify/"),
       util: require.resolve("util/"),
@@ -39,11 +40,13 @@ module.exports = {
       template: path.join(__dirname, frontend_entry),
       filename: 'index.html',
       cache: false,
+      chunks: ['index'],
     }),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, 'src', frontendDirectory, 'src', 'formsBrowser.html'),
       filename: 'formsBrowser.html',
       cache: false,
+      chunks: ['formsBrowser'],
     }),
     new webpack.EnvironmentPlugin([
       ...Object.keys(process.env).filter((key) => {
