@@ -1,59 +1,60 @@
-// Import the backend actor
 import { veriform_backend } from "../../declarations/veriform_backend";
 
 // Function to display form keys as buttons
 async function displayFormKeys() {
   try {
-    const keys = await veriform_backend.getExistingSets();
-    console.log('Form keys:', keys);
+    const keys = await veriform_backend.getExistingSets(); 
     const container = document.getElementById('button-container');
-    container.innerHTML = ''; // Clear the container before appending new buttons
+    container.innerHTML = ''; 
 
-    // Add the "Create New Form" form at the top
-    createFormContainer(container);
+    createFormContainer(container); 
 
-    // Render form keys as square buttons in a grid
     const formKeysDiv = document.createElement('div');
     formKeysDiv.classList.add('form-keys-container');
 
-    keys.forEach(key => {
+    keys.forEach(([key, name]) => { // Destructure tuple elements
       const formDiv = document.createElement('div');
       formDiv.classList.add('form-key-button');
-      const h3 = document.createElement('h3');
-      h3.textContent = key;
-      const button = document.createElement('button');
-      button.classList.add('form-key-btn');
-      button.textContent = 'Open';
-      button.addEventListener('click', () => {
-        window.location.href = `index.html?key=${key}`;
+
+      const keyHeading = document.createElement('h3');
+      keyHeading.textContent = name; 
+
+      const openButton = document.createElement('button');
+      openButton.classList.add('form-key-btn');
+      openButton.textContent = 'Open';
+      openButton.addEventListener('click', () => {
+        window.location.href = `index.html?key=${key}`; 
       });
-      formDiv.appendChild(h3);
-      formDiv.appendChild(button);
+
+      formDiv.appendChild(keyHeading);
+      formDiv.appendChild(openButton);
       formKeysDiv.appendChild(formDiv);
     });
 
     container.appendChild(formKeysDiv);
   } catch (error) {
     console.error('Error fetching form keys:', error);
-    // Handle the error appropriately, e.g., show an error message to the user
+    // Display an error message to the user
   }
 }
 
-// Function to create the "Create New Form" form
+// Function to create the "Create New Form" container
 function createFormContainer(container) {
   const formContainer = document.createElement('div');
   formContainer.classList.add('add-question-form');
+
   const form = document.createElement('form');
   form.addEventListener('submit', handleFormSubmission);
-  const inputDiv = document.createElement('div');
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.id = 'setKey';
-  input.placeholder = 'Enter form key';
-  input.classList.add('form-input');
-  inputDiv.appendChild(input);
 
-  // Add input for setName
+  const inputDiv = document.createElement('div');
+
+  const keyInput = document.createElement('input');
+  keyInput.type = 'text';
+  keyInput.id = 'setKey';
+  keyInput.placeholder = 'Enter form key';
+  keyInput.classList.add('form-input');
+  inputDiv.appendChild(keyInput);
+
   const setNameInput = document.createElement('input');
   setNameInput.type = 'text';
   setNameInput.id = 'setName';
@@ -61,7 +62,6 @@ function createFormContainer(container) {
   setNameInput.classList.add('form-input');
   inputDiv.appendChild(setNameInput);
 
-  // Create a checkbox to toggle the password input
   const passwordToggle = document.createElement('input');
   passwordToggle.type = 'checkbox';
   passwordToggle.id = 'passwordToggle';
@@ -69,78 +69,130 @@ function createFormContainer(container) {
     passwordInput.style.display = passwordToggle.checked ? 'block' : 'none';
   });
   inputDiv.appendChild(passwordToggle);
+
   const passwordInput = document.createElement('input');
   passwordInput.type = 'password';
   passwordInput.id = 'password';
   passwordInput.placeholder = 'Enter password';
   passwordInput.classList.add('form-input');
-  passwordInput.style.display = 'none'; // Hide the password input by default
+  passwordInput.style.display = 'none'; 
   inputDiv.appendChild(passwordInput);
 
-  const button = document.createElement('button');
-  button.type = 'submit';
-  button.id = 'create-form';
-  button.classList.add('form-btn');
-  button.textContent = 'Create New Form';
-  inputDiv.appendChild(button);
+  const submitButton = document.createElement('button');
+  submitButton.type = 'submit';
+  submitButton.id = 'create-form';
+  submitButton.classList.add('form-btn');
+  submitButton.textContent = 'Create New Form';
+  inputDiv.appendChild(submitButton);
+
   form.appendChild(inputDiv);
   formContainer.appendChild(form);
   container.appendChild(formContainer);
+
+  formContainer.appendChild(document.createElement('br'));
+  formContainer.appendChild(document.createElement('br'));
+  const textContainer = document.createElement('div');
+  textContainer.classList.add('form-separator-text');
+  textContainer.textContent = 'Navigate to an existing form:'; 
+  formContainer.appendChild(textContainer);
+  // Manual Navigation elements
+  const manualNavDiv = document.createElement('div');
+  manualNavDiv.classList.add('manual-nav');
+
+  const manualKeyInput = document.createElement('input');
+  manualKeyInput.type = 'text';
+  manualKeyInput.id = 'manualKey';
+  manualKeyInput.placeholder = 'Enter form key';
+  manualKeyInput.classList.add('form-input');
+  manualNavDiv.appendChild(manualKeyInput);
+
+  const manualPasswordInput = document.createElement('input');
+  manualPasswordInput.type = 'password';
+  manualPasswordInput.id = 'manualPassword';
+  manualPasswordInput.placeholder = 'Enter password (optional)';
+  manualPasswordInput.classList.add('form-input');
+  manualNavDiv.appendChild(manualPasswordInput);
+
+  const navigateButton = document.createElement('button');
+  navigateButton.id = 'navigate-form';
+  navigateButton.classList.add('form-btn');
+  navigateButton.textContent = 'Navigate';
+  navigateButton.addEventListener('click', handleManualNavigation);
+  manualNavDiv.appendChild(navigateButton);
+
+  formContainer.appendChild(manualNavDiv);
 }
 
 // Function to handle form submission
-let isAddingForm = false;
-
-const handleFormSubmission = async (event) => {
+async function handleFormSubmission(event) {
   event.preventDefault();
-
-  // Check if another form is already being added
-  if (isAddingForm) {
-    console.warn('Another form is already being added. Please wait for the previous operation to complete.');
-    return;
-  }
-
-  isAddingForm = true;
-
-  const setKey = document.getElementById('setKey').value.trim();
-  const setName = document.getElementById('setName').value.trim();
-  const passwordToggle = document.getElementById('passwordToggle');
-  let password = '';
-  if (passwordToggle.checked) { // If the password toggle is checked
-    password = document.getElementById('password').value.trim(); // Get the password
-  }
-  const submitButton = event.target.querySelector('button[type="submit"]');
-  // Check if setKey is provided
-  if (!setKey) {
-    console.error('Please provide a form key.');
-    isAddingForm = false;
-    return;
-  }
-
-  submitButton.disabled = true;
-  submitButton.innerHTML = '<span class="loading-icon">&#8635;</span> Creating...';
+  const form = event.target;
+  const submitButton = form.querySelector('button[type="submit"]');
 
   try {
+    const setKey = form.setKey.value.trim();
+    const setName = form.setName.value.trim();
+    const password = form.passwordToggle.checked ? form.password.value.trim() : '';
+
+    if (!setKey) {
+      throw new Error('Please provide a form key.');
+    }
+
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="loading-icon">&#8635;</span> Creating...';
+
     await veriform_backend.addQuestionSet(setKey, password, setName);
-    // store key and password in session storage
     sessionStorage.setItem('key', setKey);
     sessionStorage.setItem('password', password);
-    // Navigate to the created form
     window.location.href = `index.html?key=${setKey}`;
+
   } catch (error) {
     console.error('Error creating new form:', error);
-    // Handle the error appropriately, e.g., show an error message to the user
+    alert('Error: ' + error.message); 
   } finally {
     submitButton.disabled = false;
     submitButton.innerHTML = 'Create New Form';
-    isAddingForm = false;
-    document.getElementById('setKey').value = '';
-    document.getElementById('setName').value = '';
-    if (passwordToggle.checked) {
-      document.getElementById('password').value = ''; // Clear the password input
-    }
+    form.reset(); 
   }
-};
+}
+
+// Function to handle manual navigation
+async function handleManualNavigation() {
+  const keyInput = document.getElementById('manualKey');
+  const passwordInput = document.getElementById('manualPassword');
+  const navigateButton = document.getElementById('navigate-form');
+
+  const key = keyInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!key) {
+    alert('Please enter a form key.');
+    return;
+  }
+
+  navigateButton.disabled = true;
+  navigateButton.innerHTML = '<span class="loading-icon">&#8635;</span> Navigating...';
+
+  try {
+    // Placeholder: Add logic to check if the key (and password if applicable) exists
+    // You might need to interact with 'veriform_backend' to check if the key/password are valid
+    const keyExists = await veriform_backend.checkSetExists(key, password);
+
+    if (keyExists) {
+      sessionStorage.setItem('key', key);
+      sessionStorage.setItem('password', password);
+      window.location.href = `index.html?key=${key}`;
+    } else {
+      alert('Invalid key or password.');
+    }
+  } catch (error) {
+    console.error('Error during navigation:', error);
+    alert('Error: ' + error.message); // Show an error message.
+  } finally {
+    navigateButton.disabled = false;
+    navigateButton.innerHTML = 'Navigate';
+  }
+}
 
 // Call displayFormKeys on page load
 window.addEventListener('DOMContentLoaded', () => {
