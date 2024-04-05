@@ -1,6 +1,7 @@
 import { veriform_backend } from "../../declarations/veriform_backend";
 
 // Function to display form keys as buttons
+
 async function displayFormKeys() {
   try {
     const keys = await veriform_backend.getExistingSets(); 
@@ -23,7 +24,9 @@ async function displayFormKeys() {
       openButton.classList.add('form-key-btn');
       openButton.textContent = 'Open';
       openButton.addEventListener('click', () => {
-        window.location.href = `index.html?key=${key}`; 
+        //add key to session storage
+        sessionStorage.setItem('key', key);
+        window.location.href = `index.html?key=${key}`;
       });
 
       formDiv.appendChild(keyHeading);
@@ -40,6 +43,7 @@ async function displayFormKeys() {
 
 // Function to create the "Create New Form" container
 function createFormContainer(container) {
+  
   const formContainer = document.createElement('div');
   formContainer.classList.add('add-question-form');
 
@@ -68,7 +72,11 @@ function createFormContainer(container) {
   passwordToggle.addEventListener('change', () => {
     passwordInput.style.display = passwordToggle.checked ? 'block' : 'none';
   });
+  const passwordLabel = document.createElement('label');
+  passwordLabel.textContent = 'Private (Passworded)';
+  passwordLabel.htmlFor = 'passwordToggle';
   inputDiv.appendChild(passwordToggle);
+  inputDiv.appendChild(passwordLabel);
 
   const passwordInput = document.createElement('input');
   passwordInput.type = 'password';
@@ -125,6 +133,7 @@ function createFormContainer(container) {
 
 // Function to handle form submission
 async function handleFormSubmission(event) {
+  sessionStorage.clear();
   event.preventDefault();
   const form = event.target;
   const submitButton = form.querySelector('button[type="submit"]');
@@ -158,6 +167,7 @@ async function handleFormSubmission(event) {
 
 // Function to handle manual navigation
 async function handleManualNavigation() {
+  sessionStorage.clear();
   const keyInput = document.getElementById('manualKey');
   const passwordInput = document.getElementById('manualPassword');
   const navigateButton = document.getElementById('navigate-form');
@@ -174,8 +184,6 @@ async function handleManualNavigation() {
   navigateButton.innerHTML = '<span class="loading-icon">&#8635;</span> Navigating...';
 
   try {
-    // Placeholder: Add logic to check if the key (and password if applicable) exists
-    // You might need to interact with 'veriform_backend' to check if the key/password are valid
     const keyExists = await veriform_backend.checkSetExists(key, password);
 
     if (keyExists) {

@@ -48,9 +48,9 @@ const fetchAndRenderQuestions = async () => {
       formIsPrivate = true;
       if (sessionKey) {
         setKey = sessionKey;
-      } 
+      }
     } else {
-      prompt('Invalid key or password, please try again');
+      alert('Invalid key or password, please try again');
       window.location.href = 'formsBrowser.html';
     }
   } else {
@@ -59,11 +59,13 @@ const fetchAndRenderQuestions = async () => {
     const existingSets = await veriform_backend.getExistingSets();
     const formKeys = existingSets.map(set => set[0]);
     console.log("Form keys are:", formKeys);
+
     if (sessionKey && formKeys.includes(sessionKey)) {
       setKey = sessionKey;
-      console.log("found public set 2")
+    } else if (keyFromURL && formKeys.includes(keyFromURL)) {
+      setKey = keyFromURL;
     } else {
-      prompt('Invalid or no key found, please try again');
+      alert('Invalid or no key found, please try again');
       window.location.href = 'formsBrowser.html';
     }
   }
