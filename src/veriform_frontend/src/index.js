@@ -196,74 +196,78 @@ const renderQuestion = (question, index) => {
 
 // Toggle the display of the "Other" input for radio buttons
 const toggleOtherInput = (event) => {
-    const otherOptionInput = event.target.parentNode.parentNode.querySelector('.other-option-input input[type="text"]');
-    const otherOptionContainer = event.target.parentNode.parentNode.querySelector('.other-option-input');
-    if (event.target.dataset.other === 'true') {
-        otherOptionContainer.style.display = event.target.checked ? 'block' : 'none';
-        if (!event.target.checked) otherOptionInput.value = '';
-    } else {
-        otherOptionContainer.style.display = 'none';
-        otherOptionInput.value = '';
-    }
+  const otherOptionInput = event.target.parentNode.parentNode.querySelector('.other-option-input input[type="text"]');
+  const otherOptionContainer = event.target.parentNode.parentNode.querySelector('.other-option-input');
+
+  if (otherOptionContainer) {
+      otherOptionContainer.style.display = event.target.dataset.other === 'true' ? 'block' : 'none';
+      if (!event.target.checked) otherOptionInput.value = '';
+  }
 };
 
 // Handle submit button click
 const submitAnswers = async () => {
-    if (!submitButton.disabled && !isSubmitting) {
-        isSubmitting = true;
-        submitButton.disabled = true;
-        submitButton.innerHTML = '<span class="loading-icon">↻</span> Submitting...';
-        const selectedPassword = password;
-        const questions = await veriform_backend.getQuestions(setKey, selectedPassword);
-        const answers = [];
+  if (!submitButton.disabled && !isSubmitting) {
+      isSubmitting = true;
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<span class="loading-icon">↻</span> Submitting...';
+      const selectedPassword = password;
+      const questions = await veriform_backend.getQuestions(setKey, selectedPassword);
+      const answers = [];
 
-        // Loop through questions and collect user answers
-        for (let i = 0; i < questions.length; i++) {
-            const [questionType, questionText, questionOptions] = questions[i];
-            let answer = '';
+      // Loop through questions and collect user answers
+      for (let i = 0; i < questions.length; i++) {
+          const [questionType, questionText, questionOptions] = questions[i];
+          let answer = '';
 
-            switch (questionType) {
-                case 'text':
-                    answer = document.querySelector(`#answer-${i}`).value.trim();
-                    break;
-                case 'radio':
-                    const selectedRadio = document.querySelector(`input[name="question-${i}"]:checked`);
-                    const otherInput = document.querySelector(`#other-answer-${i}`);
-                    if (selectedRadio) {
-                        answer = selectedRadio.dataset.other === 'true' ? (otherInput.value.trim() || selectedRadio.value) : selectedRadio.value;
-                    }
-                    break;
-                case 'checkbox':
-                    const selectedCheckboxes = Array.from(document.querySelectorAll(`input[name="question-${i}"]:checked`));
-                    answer = selectedCheckboxes.map(checkbox => checkbox.value).join(', ');
-                    break;
-                case 'paragraph':
-                    answer = document.querySelector(`#answer-${i}`).value.trim();
-                    break;
-                case 'dropdown':
-                    answer = document.querySelector(`#answer-${i}`).value;
-                    break;
-                case 'linearScale':
-                    selectedRadio = document.querySelector(`input[name="question-${i}"]:checked`);
-                    answer = selectedRadio ? selectedRadio.value : '';
-                    break;
-            }
+          switch (questionType) {
+              case 'text':
+                  answer = document.querySelector(`#answer-${i}`).value.trim();
+                  break;
+              case 'radio':
+                  const selectedRadios = document.querySelectorAll(`input[name="question-${i}"]:checked`);
+                  if (selectedRadios.length > 0) {
+                      const otherInput = document.querySelector(`#other-answer-${i}`);
+                      answer = Array.from(selectedRadios).map(radio => {
+                          if (radio.dataset.other === 'true') {
+                              return otherInput.value.trim() || radio.value;
+                          } else {
+                              return radio.value;
+                          }
+                      }).join(', ');
+                  }
+                  break;
+              case 'checkbox':
+                  const selectedCheckboxes = Array.from(document.querySelectorAll(`input[name="question-${i}"]:checked`));
+                  answer = selectedCheckboxes.map(checkbox => checkbox.value).join(', ');
+                  break;
+              case 'paragraph':
+                  answer = document.querySelector(`#answer-${i}`).value.trim();
+                  break;
+              case 'dropdown':
+                  answer = document.querySelector(`#answer-${i}`).value;
+                  break;
+              case 'linearScale':
+                  const selectedRadio = document.querySelector(`input[name="question-${i}"]:checked`);
+                  answer = selectedRadio ? selectedRadio.value : '';
+                  break;
+          }
 
-            // Add the question and answer to the answers array if an answer is provided
-            if (answer) answers.push([questionText, answer]);
-        }
+          // Add the question and answer to the answers array if an answer is provided
+          if (answer) answers.push([questionText, answer]);
+      }
 
-        // Add all answers to the backend at once
-        await veriform_backend.addAnswers(setKey, selectedPassword, answers);
+      // Add all answers to the backend at once
+      await veriform_backend.addAnswers(setKey, selectedPassword, answers);
 
-        // Get the updated results from the backend and display them
-        const results = await veriform_backend.getResults(setKey, password);
-        displayResults(results);
+      // Get the updated results from the backend and display them
+      const results = await veriform_backend.getResults(setKey, password);
+      displayResults(results);
 
-        submitButton.disabled = false;
-        submitButton.innerHTML = 'Submit Answers';
-        isSubmitting = false;
-    }
+      submitButton.disabled = false;
+      submitButton.innerHTML = 'Submit Answers';
+      isSubmitting = false;
+  }
 };
 
 // Display the poll results
