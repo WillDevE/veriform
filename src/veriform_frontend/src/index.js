@@ -1,3 +1,4 @@
+//index.js
 // Import the backend actor
 import { veriform_backend } from "../../declarations/veriform_backend";
 
